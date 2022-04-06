@@ -19,34 +19,63 @@ def mergeTables(info_df: pd.DataFrame, em_df: pd.DataFrame, tf_df: pd.DataFrame,
                                 tf_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('1m'))
+                                tolerance=pd.Timedelta('1y'))
 
     data2_df = pd.merge_asof(mktcap_df.sort_values(by=PrimaryKey.date),
                                 employees_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('1Y'))
+                                tolerance=pd.Timedelta('2y'))
     
     data_all_df = pd.merge_asof(data1_df.sort_values(by=PrimaryKey.date),
                                 data2_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('1Y'))
+                                tolerance=pd.Timedelta('2y'))
 
     data_all_df = pd.merge_asof(data_all_df.sort_values(by=PrimaryKey.date),
                                 oth_fin_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('1Y'))
+                                tolerance=pd.Timedelta('2y'))
 
     data_all_df = data_all_df.sort_values(by=[PrimaryKey.date], ascending=False)
     data_all_df = data_all_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
 
     all_df = info_df.merge(data_all_df, on=PrimaryKey.assetid)
-    
-    all_df = all_df.dropna(subset=config.variables, thresh=3)
-    
+    all_df = all_df.dropna(subset=config.variables, thresh=2)
     all_df = all_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','region','iso2','em_true', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']]
     
     
     return all_df
+
+def mergeTables_real(info_df: pd.DataFrame, tf_df: pd.DataFrame, mktcap_df: pd.DataFrame, employees_df: pd.DataFrame, oth_fin_df: pd.DataFrame)-> pd.DataFrame:
+
+    data1_df = pd.merge_asof(tf_df.sort_values(by=PrimaryKey.date),
+                                oth_fin_df.sort_values(by=PrimaryKey.date),
+                                on=[PrimaryKey.date],
+                                by=[PrimaryKey.assetid],
+                                tolerance=pd.Timedelta('2y'))
+    
+    data2_df = pd.merge_asof(mktcap_df.sort_values(by=PrimaryKey.date),
+                                employees_df.sort_values(by=PrimaryKey.date),
+                                on=[PrimaryKey.date],
+                                by=[PrimaryKey.assetid],
+                                tolerance=pd.Timedelta('2y'))
+    
+    data_all_df = pd.merge_asof(data1_df.sort_values(by=PrimaryKey.date),
+                                data2_df.sort_values(by=PrimaryKey.date),
+                                on=[PrimaryKey.date],
+                                by=[PrimaryKey.assetid],
+                                tolerance=pd.Timedelta('2y'))
+
+    
+    data_all_df = data_all_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    data_all_df = data_all_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+
+    X_df = info_df.merge(data_all_df, on=PrimaryKey.assetid)
+    X_df = X_df.dropna(subset=config.variables, thresh=2)
+    X_df = X_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','region','iso2', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']]
+    
+    
+    return X_df

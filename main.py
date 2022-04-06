@@ -12,7 +12,6 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 
 import input_scoring_toolbox.loading_tools as lt
-import in_out_functions as iof
 from sray_db.apps import apps
 from sray_db.apps.pk import PrimaryKey
 
@@ -36,7 +35,7 @@ fsymid_df = lt.get_meta_data(apps['assetinfo_security_id'][(1,0,0,0)], columns =
 fsymid_df['asset_id'] = fsymid_df.index
 
 print("Getting emissions...")
-emissions_df = iof.load_app_data('temperature_emissions', (1, 1, 0, 0), str(start), str(today))  #************************#
+emissions_df = lt.get_app_data(apps['temperature_emissions'][(1, 1, 0, 0)], str(start), str(today), freq = 'M')
 
 '''
 Define which scope we wish to estimate
@@ -49,12 +48,12 @@ elif config.scope == 'three':
     em_df = emissions_df.dropna(subset = ["em_3"]).rename(columns={"em_3": "em_true"})
 
 print('Getting revenue...')
-tf_df = iof.load_app_data('temperature_financials', (1, 1, 0, 0), '2021-10-01', str(today))  #************************#
-tf_df = tf_df[[PrimaryKey.assetid, PrimaryKey.date, 'va_usd','revenue']]
+tf_df = lt.get_app_data(apps['temperature_financials'][(1, 1, 0, 0)], '2021-10-01', str(today), freq = 'M')
+tf_df = tf_df[['va_usd','revenue']]
 
 print("Getting market capitalisation...")
-mktcap_df = iof.load_app_data('sray_mktcap', (2, 6, 1, 0), str(start), str(today))  #************************#
-mktcap_df = mktcap_df[[PrimaryKey.assetid, PrimaryKey.date, 'mktcap_avg_12m']]
+mktcap_df = lt.get_app_data(apps['sray_mktcap'][(2, 6, 1, 0)], str(start), str(today), freq = 'M')
+mktcap_df = mktcap_df[['mktcap_avg_12m']]
 
 print("Getting number of employees...")
 esg_df = lt.get_raw_data('esg', str(start), str(today))  #************************#
@@ -64,7 +63,7 @@ employees_df[PrimaryKey.date] = pd.to_datetime(employees_df[PrimaryKey.date])
 employees_df = employees_df.dropna(subset = [PrimaryKey.date])
 
 print("Getting other financial data...")
-oth_fin_df = fsymid_df.merge(iof.get_csv_from_file('other_fin_data.csv'), on='fsym_id', how='outer').rename(columns={"asset_id": PrimaryKey.assetid, 'date': PrimaryKey.date})
+oth_fin_df = fsymid_df.merge(pd.read_csv('other_fin_data.csv'), on='fsym_id', how='outer').rename(columns={"asset_id": PrimaryKey.assetid, 'date': PrimaryKey.date})
 oth_fin_df = oth_fin_df.dropna(subset = [PrimaryKey.assetid])
 oth_fin_df[PrimaryKey.assetid] = oth_fin_df[PrimaryKey.assetid].astype('int')
 oth_fin_df[PrimaryKey.date] = pd.to_datetime(oth_fin_df[PrimaryKey.date])
@@ -72,10 +71,9 @@ oth_fin_df = oth_fin_df.dropna(subset = [PrimaryKey.date])
 
 print("Merging tables...")
 info_df = assetid_df.merge(fsymid_df, left_index=True, right_index=True).merge(industry_df, left_index=True, right_index=True).merge(geography_df, left_index=True, right_index=True)    
-#info_df[PrimaryKey.assetid] = info_df.index
 
 all_df = merge_tables.mergeTables(info_df, em_df, tf_df, mktcap_df, employees_df, oth_fin_df)
-all_df_large = all_df[~(all_df['em_true'] <= 1000)]
+X_real = merge_tables.mergeTables_real(info_df, tf_df, mktcap_df, employees_df, oth_fin_df)
 
 '''
 Introduce the entities we want to estimate (test_df) and the entities that will train our model (train_df)
@@ -90,9 +88,8 @@ XG boosting method
 '''
 import eem_regression as eem_regs
 import eem_cal_functions as eem
-import boostyBoost as boostyBoost
 
-xgBoost_df = eem_regs.xgBoost(test_df, train_df)
+xgBoost_df = eem_regs.xgBoost(test_df, train_df, X_real)
 
 xx = xgBoost_df[PrimaryKey.assetid]
 xy = 100*(xgBoost_df['em_est'] - xgBoost_df['em_true'])/xgBoost_df['em_true']

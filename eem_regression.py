@@ -12,49 +12,68 @@ load_dotenv("/Users/kieranbrophy/.env_dev")
 import pandas as pd
 
 import eem_cal_functions as eem
+import _config_ as config
 from sray_db.apps.pk import PrimaryKey
 
-import _config_ as config
-
-def xgBoost(test_df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFrame:
+def xgBoost(test_df: pd.DataFrame, train_df: pd.DataFrame, X_real: pd.DataFrame) -> pd.DataFrame:
     
     X_test = test_df[[PrimaryKey.assetid,'industry','region','iso2','va_usd','revenue','employees','mktcap_avg_12m','ff_assets','ff_eq_tot','ff_mkt_val']]
     y_test = test_df[[PrimaryKey.assetid,'industry','region','iso2','em_true']]
     
     X_train = train_df[[PrimaryKey.assetid,'industry','region','iso2','va_usd','revenue','employees','mktcap_avg_12m','ff_assets','ff_eq_tot','ff_mkt_val']]
     y_train = train_df[[PrimaryKey.assetid,'industry','region','iso2','em_true']]
+    
+    X_real = X_real[[PrimaryKey.assetid,'industry','region','iso2','va_usd','revenue','employees','mktcap_avg_12m','ff_assets','ff_eq_tot','ff_mkt_val']]
 
-    boost_global = X_train.groupby('industry').apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['industry'] == x['industry'].iloc[0]], X_test.loc[X_test['industry'] == x['industry'].iloc[0]], y_test.loc[y_test['industry'] == x['industry'].iloc[0]]))
+    boost_global = X_train.groupby('industry').apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['industry'] == x['industry'].iloc[0]],
+                                                                                 X_test.loc[X_test['industry'] == x['industry'].iloc[0]], y_test.loc[y_test['industry'] == x['industry'].iloc[0]],
+                                                                                 X_real.loc[X_real['industry'] == x['industry'].iloc[0]]))
     boost_global = pd.DataFrame(boost_global)    
     boost_global['em_est'] = boost_global[0].str.get(0)
+    boost_global['spatial_scale'] = 'global'
+    boost_global = boost_global.dropna(subset = ['em_est'])
 
-    result_global = y_test.merge(boost_global[['em_est','datapoints']], on = PrimaryKey.assetid, how='outer')
-    result_global['spatial_level'] = 'global'
+    if config.test == True:
+        result_global = y_test.merge(boost_global[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
+    else:
+        result_global = X_real.merge(boost_global[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
 
-    boost_region = X_train.groupby(['industry','region']).apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['region'] == x['region'].iloc[0]], X_test.loc[X_test['region'] == x['region'].iloc[0]], y_test.loc[y_test['region'] == x['region'].iloc[0]]))
+    boost_region = X_train.groupby(['industry','region']).apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['region'] == x['region'].iloc[0]],
+                                                                                            X_test.loc[X_test['region'] == x['region'].iloc[0]], y_test.loc[y_test['region'] == x['region'].iloc[0]],
+                                                                                            X_real.loc[X_real['region'] == x['region'].iloc[0]]))
     boost_region = pd.DataFrame(boost_region) 
     boost_region['em_est'] = boost_region[0].str.get(0)
+    boost_region['spatial_scale'] = 'regional'
+    boost_region = boost_region.dropna(subset = ['em_est'])
     
-    result_region = y_test.merge(boost_region[['em_est','datapoints']], on = PrimaryKey.assetid, how='outer')
-    result_region['spatial_level'] = 'regional'
-
-    boost_country = X_train.groupby(['industry','iso2']).apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['iso2'] == x['iso2'].iloc[0]], X_test.loc[X_test['iso2'] == x['iso2'].iloc[0]], y_test.loc[y_test['iso2'] == x['iso2'].iloc[0]]))
+    if config.test == True:
+        result_region = y_test.merge(boost_global[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
+    else:
+        result_region = X_real.merge(boost_region[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
+        
+    boost_country = X_train.groupby(['industry','iso2']).apply(lambda x: eem.xgBoostyBoost(x, y_train.loc[y_train['iso2'] == x['iso2'].iloc[0]],
+                                                                                           X_test.loc[X_test['iso2'] == x['iso2'].iloc[0]], y_test.loc[y_test['iso2'] == x['iso2'].iloc[0]],
+                                                                                           X_real.loc[X_real['iso2'] == x['iso2'].iloc[0]]))
     boost_country = pd.DataFrame(boost_country)    
     boost_country['em_est'] = boost_country[0].str.get(0)
+    boost_country['spatial_scale'] = 'country'
+    boost_country = boost_country.dropna(subset = ['em_est'])
     
-    result_country = y_test.merge(boost_country[['em_est','datapoints']], on = PrimaryKey.assetid, how='outer')
-    result_country['spatial_level'] = 'country'
-
+    if config.test == True:
+        result_country = y_test.merge(boost_global[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
+    else:
+        result_country = X_real.merge(boost_country[['em_est','datapoints','spatial_scale']], on = PrimaryKey.assetid, how='outer')
+        
     result_opt = result_country
     
     result_opt['em_est'].fillna(result_region['em_est'], inplace=True)
     result_opt['datapoints'].fillna(result_region['datapoints'], inplace=True)
+    result_opt['spatial_scale'].fillna(result_region['spatial_scale'], inplace=True)
     
     result_opt['em_est'].fillna(result_global['em_est'], inplace=True)
     result_opt['datapoints'].fillna(result_global['datapoints'], inplace=True)
-    result_opt['spatial_level'].fillna(result_global['spatial_level'], inplace=True)
+    result_opt['spatial_scale'].fillna(result_global['spatial_scale'], inplace=True)
 
     result = result_opt
-
     
     return result
