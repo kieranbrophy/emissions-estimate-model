@@ -11,43 +11,15 @@ load_dotenv("/Users/kieranbrophy/.env_dev")
 
 import pandas as pd
 from scipy import stats
+from sklearn import metrics
 
-import _config_ as config
-
-from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+import optuna
 
 from sray_db.apps.pk import PrimaryKey
 
-import optuna
-import boostyBoost as boostyBoost
-
-import pandas as pd
-import numpy as np
-import optuna
-
-from sklearn import compose
-from sklearn import impute
-from sklearn import metrics
-from sklearn import model_selection
-from sklearn import pipeline
-
-import xgboost as xgb
 import _config_ as config
-
-def linReg(x, y):    
-    slope, intercept, r, p, std_err = stats.linregress(y, x)
-    length = len(x)
-    r_sq = r*r
-    
-    return pd.Series({'r_sq': r_sq, 'datapoints' : length, 'p': p, 'slope': slope, 'intercept': intercept, 'std_err': std_err})
-
-def calcem(x, slope, intercept):
-    y = slope*x + intercept
-    
-    return y
+import boostyBoost as boostyBoost
 
 def xgBoostyBoost (X_train, y_train, X_test, y_test):
     

@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 load_dotenv("/Users/kieranbrophy/.env_dev")
 
 from datetime import date, datetime, timedelta
-import numpy as np
 import pandas as pd
 
 import input_scoring_toolbox.loading_tools as lt
@@ -76,43 +75,15 @@ info_df = assetid_df.merge(fsymid_df, left_index=True, right_index=True).merge(i
 #info_df[PrimaryKey.assetid] = info_df.index
 
 all_df = merge_tables.mergeTables(info_df, em_df, tf_df, mktcap_df, employees_df, oth_fin_df)
-
 all_df_large = all_df[~(all_df['em_true'] <= 1000)]
 
 '''
 Introduce the entities we want to estimate (test_df) and the entities that will train our model (train_df)
 '''
-test_length = int(0.2*len(all_df_large))
+test_length = int(0.2*len(all_df))
 
-test_df = all_df_large.head(test_length)
-train_df = all_df_large.iloc[test_length:]
-
-'''
-Single linear regression
-'''
-import eem_regression as eem_regs
-import eem_cal_functions as eem
-
-singleReg_df = eem_regs.singleReg(test_df, train_df)
-
-sx = singleReg_df[PrimaryKey.assetid]
-sy = 100*(singleReg_df['em_est'] - singleReg_df['em_true'])/singleReg_df['em_true']
-
-print('Single median error:', sy.median())
-
-import matplotlib.pyplot as plt
-plt.scatter(sx, sy)
-plt.xlabel('Asset ID')
-plt.ylabel('% error')
-plt.show()
-
-plt.hist(sy[(sy < 1000)], bins=10)
-plt.xlim(-1000, 1000)
-plt.xlabel('% error')
-plt.ylabel('Number of entities')
-plt.show() 
-
-100*len(sy[(sy < 100)])/len(sy)
+test_df = all_df.head(test_length)
+train_df = all_df.iloc[test_length:]
 
 '''
 XG boosting method
@@ -141,4 +112,3 @@ plt.ylabel('Number of entities')
 plt.show() 
 
 100*len(xy.dropna()[(xy.dropna() < 100)])/len(xy.dropna())
-
