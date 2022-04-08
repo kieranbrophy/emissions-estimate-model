@@ -44,6 +44,6 @@ def mergeTables(info_df: pd.DataFrame, em_df: pd.DataFrame, tf_df: pd.DataFrame,
 
     all_df = info_df.merge(data_all_df, on=PrimaryKey.assetid)
     all_df = all_df.dropna(subset=config.variables, thresh=2)
-    all_df = all_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','region','iso2','em_true', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']] 
+    all_df = all_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','economic_sector','iea_sector','region','iso2','em_true', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']] 
         
     return all_df

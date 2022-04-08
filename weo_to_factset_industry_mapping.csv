@@ -1,0 +1,134 @@
+﻿economic_sector,industry,iea_sector
+Commercial Services,Advertising/Marketing Services,Commercial Services
+Commercial Services,Financial Publishing/Services,Commercial Services
+Commercial Services,Commercial Printing/Forms,Commercial Services
+Commercial Services,Personnel Services,Commercial Services
+Commercial Services,Miscellaneous Commercial Services,Commercial Services
+Communications,Specialty Telecommunications,Communications
+Communications,Wireless Telecommunications,Communications
+Communications,Major Telecommunications,Communications
+Consumer Durables,Tools & Hardware,Consumer Durables
+Consumer Durables,Recreational Products,Consumer Durables
+Consumer Durables,Homebuilding,Consumer Durables
+Consumer Durables,Other Consumer Specialties,Consumer Durables
+Consumer Durables,Home Furnishings,Consumer Durables
+Consumer Durables,Automotive Aftermarket,Consumer Durables
+Consumer Durables,Motor Vehicles,Consumer Durables
+Consumer Durables,Electronics/Appliances,Consumer Durables
+Consumer Non-Durables,Beverages: Non-Alcoholic,Consumer Non-Durables
+Consumer Non-Durables,Beverages: Alcoholic,Consumer Non-Durables
+Consumer Non-Durables,Food: Specialty/Candy,Consumer Non-Durables
+Consumer Non-Durables,Consumer Sundries,Consumer Non-Durables
+Consumer Non-Durables,Household/Personal Care,Consumer Non-Durables
+Consumer Non-Durables,Food: Meat/Fish/Dairy,Consumer Non-Durables
+Consumer Non-Durables,Food: Major Diversified,Consumer Non-Durables
+Consumer Non-Durables,Tobacco,Consumer Non-Durables
+Consumer Non-Durables,Apparel/Footwear,Consumer Non-Durables
+Consumer Services,Media Conglomerates,Consumer Services
+Consumer Services,Casinos/Gaming,Consumer Services
+Consumer Services,Publishing: Books/Magazines,Consumer Services
+Consumer Services,Movies/Entertainment,Consumer Services
+Consumer Services,Publishing: Newspapers,Consumer Services
+Consumer Services,Broadcasting,Consumer Services
+Consumer Services,Other Consumer Services,Consumer Services
+Consumer Services,Restaurants,Consumer Services
+Consumer Services,Hotels/Resorts/Cruise lines,Consumer Services
+Consumer Services,Cable/Satellite TV,Consumer Services
+Distribution Services,Electronics Distributors,Distribution Services
+Distribution Services,Wholesale Distributors,Distribution Services
+Distribution Services,Medical Distributors,Distribution Services
+Distribution Services,Food Distributors,Distribution Services
+Electronic Technology,Semiconductors,Electronic Technology
+Electronic Technology,Computer Peripherals,Electronic Technology
+Electronic Technology,Electronic Components,Electronic Technology
+Electronic Technology,Electronic Equipment/Instruments,Electronic Technology
+Electronic Technology,Electronic Production Equipment,Electronic Technology
+Electronic Technology,Computer Communications,Electronic Technology
+Electronic Technology,Telecommunications Equipment,Electronic Technology
+Electronic Technology,Computer Processing Hardware,Electronic Technology
+Electronic Technology,Aerospace & Defense,Electronic Technology
+Energy Minerals,Integrated Oil,Energy Minerals
+Energy Minerals,Oil Refining/Marketing,Energy Minerals
+Energy Minerals,Oil & Gas Production,Energy Minerals
+Energy Minerals,Coal,Energy Minerals
+Finance,Savings Banks,Finance
+Finance,Property/Casualty Insurance,Finance
+Finance,Specialty Insurance,Finance
+Finance,Life/Health Insurance,Finance
+Finance,Insurance Brokers/Services,Finance
+Finance,Investment Managers,Finance
+Finance,Finance/Rental/Leasing,Finance
+Finance,Real Estate Investment Trusts,Finance
+Finance,Real Estate Development,Finance
+Finance,Major Banks,Finance
+Finance,Multi-Line Insurance,Finance
+Finance,Financial Conglomerates,Finance
+Finance,Regional Banks,Finance
+Finance,Investment Banks/Brokers,Finance
+Government,Supranational,Government
+Government,General Government,Government
+Government,Sovereign,Government
+Health Services,Medical/Nursing Services,Commercial Services
+Health Services,Hospital/Nursing Management,Commercial Services
+Health Services,Services to the Health Industry,Commercial Services
+Health Services,Managed Health Care,Commercial Services
+Health Technology,Pharmaceuticals: Generic,Health Technology
+Health Technology,Pharmaceuticals: Other,Health Technology
+Health Technology,Biotechnology,Health Technology
+Health Technology,Medical Specialties,Health Technology
+Health Technology,Pharmaceuticals: Major,Health Technology
+Industrial Services,Engineering & Construction,Industrial Services
+Industrial Services,Contract Drilling,Industrial Services
+Industrial Services,Oilfield Services/Equipment,Industrial Services
+Industrial Services,Environmental Services,Industrial Services
+Industrial Services,Oil & Gas Pipelines,Industrial Services
+Miscellaneous,Investment Trusts/Mutual Funds,Finance
+Miscellaneous,Miscellaneous,Finance
+Non-Energy Minerals,Aluminum,Non-Energy Minerals
+Non-Energy Minerals,Construction Materials,Non-Energy Minerals
+Non-Energy Minerals,Precious Metals,Non-Energy Minerals
+Non-Energy Minerals,Steel,Non-Energy Minerals
+Non-Energy Minerals,Forest Products,Non-Energy Minerals
+Non-Energy Minerals,Other Metals/Minerals,Non-Energy Minerals
+Process Industries,Agricultural Commodities/Milling,Process Industries
+Process Industries,Chemicals: Specialty,Process Industries
+Process Industries,Chemicals: Major Diversified,Process Industries
+Process Industries,Textiles,Process Industries
+Process Industries,Industrial Specialties,Process Industries
+Process Industries,Pulp & Paper,Process Industries
+Process Industries,Chemicals: Agricultural,Process Industries
+Process Industries,Containers/Packaging,Process Industries
+Producer Manufacturing,Industrial Conglomerates,Producer Manufacturing
+Producer Manufacturing,Office Equipment/Supplies,Producer Manufacturing
+Producer Manufacturing,Industrial Machinery,Producer Manufacturing
+Producer Manufacturing,Miscellaneous Manufacturing,Producer Manufacturing
+Producer Manufacturing,Metal Fabrication,Producer Manufacturing
+Producer Manufacturing,Trucks/Construction/Farm Machinery,Producer Manufacturing
+Producer Manufacturing,Auto Parts: OEM,Producer Manufacturing
+Producer Manufacturing,Electrical Products,Producer Manufacturing
+Producer Manufacturing,Building Products,Producer Manufacturing
+Retail Trade,Discount Stores,Retail Trade
+Retail Trade,Internet Retail,Retail Trade
+Retail Trade,Department Stores,Retail Trade
+Retail Trade,Electronics/Appliance Stores,Retail Trade
+Retail Trade,Food Retail,Retail Trade
+Retail Trade,Catalog/Specialty Distribution,Retail Trade
+Retail Trade,Drugstore Chains,Retail Trade
+Retail Trade,Apparel/Footwear Retail,Retail Trade
+Retail Trade,Specialty Stores,Retail Trade
+Retail Trade,Home Improvement Chains,Retail Trade
+Technology Services,Packaged Software,Technology Services
+Technology Services,Data Processing Services,Technology Services
+Technology Services,Information Technology Services,Technology Services
+Technology Services,Internet Software/Services,Technology Services
+Transportation,Trucking,Other transport
+Transportation,Marine Shipping,Marine Shipping
+Transportation,Railroads,Other transport
+Transportation,Airlines,Aviation transport
+Transportation,Other Transportation,Other transport
+Transportation,Air Freight/Couriers,Aviation transport
+Utilities,Water Utilities,Utilities
+Utilities,Gas Distributors,Utilities
+Utilities,Electric Utilities,Utilities
+Utilities,Alternative Power Generation,Utilities
+Government,Municipality,Government

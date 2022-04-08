@@ -28,7 +28,7 @@ Load in variables
 '''
 print("Getting asset IDs...")
 assetid_df = lt.get_meta_data(apps['assetinfo_entity'][(1,0,0,0)])
-industry_df = lt.get_meta_data(apps['assetinfo_activity'][(1,0,0,0)], columns = ['industry'])
+industry_df = lt.get_meta_data(apps['assetinfo_activity'][(1,0,0,0)], columns = ['industry','economic_sector']).merge(pd.read_csv('weo_to_factset_industry_mapping.csv'), on='industry', how='outer').rename(columns={"economic_sector_x": 'economic_sector'})
 geography_df = lt.get_meta_data(apps['assetinfo_exch_country'][(1,0,0,0)], columns = ['region','iso2'])
 fsymid_df = lt.get_meta_data(apps['assetinfo_security_id'][(1,0,0,0)], columns = ['fsymid']).rename(columns={"fsymid": "fsym_id"})
 
@@ -70,25 +70,36 @@ oth_fin_df[PrimaryKey.date] = pd.to_datetime(oth_fin_df[PrimaryKey.date])
 oth_fin_df = oth_fin_df.dropna(subset = [PrimaryKey.date])
 
 print("Merging tables...")
-info_df = assetid_df.merge(fsymid_df, left_index=True, right_index=True).merge(industry_df, left_index=True, right_index=True).merge(geography_df, left_index=True, right_index=True)    
+info_df = assetid_df.merge(fsymid_df, left_index=True, right_index=True).merge(industry_df, left_index=True, right_index=True).merge(geography_df, left_index=True, right_index=True).rename(columns={"asset_id": PrimaryKey.assetid})
 
 all_df = merge_tables.mergeTables(info_df, em_df, tf_df, mktcap_df, employees_df, oth_fin_df)
 
 '''
-XG boosting method
+Company spcific model
+'''
+em_old = em_df.sort_values(by=PrimaryKey.date)
+
+'''
+Industry spcific model - using XG boosting method
 '''
 import eem_regression_new as eem_regs
 import eem_cal_functions_new as eem
 
 xgBoost_df = eem_regs.xgBoost(all_df)
 
+'''
+Combine Company and industry models
+'''
+
+'''
+'''
 xx = xgBoost_df[PrimaryKey.assetid]
 xy = 100*(xgBoost_df['em_est'] - xgBoost_df['em_true'])/xgBoost_df['em_true']
 
 print('XG Boost median error:', xy.median())
 
 import matplotlib.pyplot as plt
-plt.scatter(xx, xy)
+plt.scatter(xx, abs(xy))
 plt.xlabel('Asset ID')
 plt.ylabel('% error')
 plt.show()
