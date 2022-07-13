@@ -5,77 +5,90 @@ Created on Fri Apr  1 11:37:28 2022
 
 @author: kieran.brophyarabesque.com
 """
-from datetime import date, datetime, timedelta
 import pandas as pd
+import numpy as np
 
-from sray_db.apps.pk import PrimaryKey
+from functools import reduce
+
+from sray_db.pk import PrimaryKey
 
 import _config_ as config
 
-def mergeTables(info_df: pd.DataFrame, em_df: pd.DataFrame, tf_df: pd.DataFrame, mktcap_df: pd.DataFrame, employees_df: pd.DataFrame, oth_fin_df: pd.DataFrame)-> pd.DataFrame:
+def mergeTables(info_df, em_df, tf_df, employees_df, energy_df, ghg_df, oth_fin_df):
     
+    employees_df = employees_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    employees_df = employees_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
     
-    data1_df = pd.merge_asof(em_df.sort_values(by=PrimaryKey.date),
-                                tf_df.sort_values(by=PrimaryKey.date),
-                                on=[PrimaryKey.date],
-                                by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('1y'))
+    energy_df = energy_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    energy_df = energy_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+    
+    ghg_df = ghg_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    ghg_df = ghg_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+    
+    oth_fin_df = oth_fin_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    oth_fin_df = oth_fin_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+    
+    merge_df = [info_df, em_df, tf_df, employees_df, energy_df, ghg_df, oth_fin_df]
+    
+    all_df = reduce(lambda  left,right: pd.merge(left,right,on=[PrimaryKey.assetid],
+                                            how='outer'), merge_df)
 
-    data2_df = pd.merge_asof(mktcap_df.sort_values(by=PrimaryKey.date),
-                                employees_df.sort_values(by=PrimaryKey.date),
-                                on=[PrimaryKey.date],
-                                by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
+    all_df = all_df.dropna(subset=config.variables_short, axis=0, thresh=config.nan_thresh)
+    all_df = all_df.set_index([PrimaryKey.assetid])
+    all_df = all_df[config.variables_long] 
     
-    data_all_df = pd.merge_asof(data1_df.sort_values(by=PrimaryKey.date),
-                                data2_df.sort_values(by=PrimaryKey.date),
-                                on=[PrimaryKey.date],
-                                by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
-
-    data_all_df = pd.merge_asof(data_all_df.sort_values(by=PrimaryKey.date),
-                                oth_fin_df.sort_values(by=PrimaryKey.date),
-                                on=[PrimaryKey.date],
-                                by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
-
-    data_all_df = data_all_df.sort_values(by=[PrimaryKey.date], ascending=False)
-    data_all_df = data_all_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
-
-    all_df = info_df.merge(data_all_df, on=PrimaryKey.assetid)
-    all_df = all_df.dropna(subset=config.variables, thresh=2)
-    all_df = all_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','region','iso2','em_true', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']]
-    
-    
+    all_df = all_df.fillna(value=np.nan)
+    all_df['ghg'] = pd.to_numeric(all_df['ghg'])
+            
     return all_df
 
-def mergeTables_real(info_df: pd.DataFrame, tf_df: pd.DataFrame, mktcap_df: pd.DataFrame, employees_df: pd.DataFrame, oth_fin_df: pd.DataFrame)-> pd.DataFrame:
+def oldEm(oldEm_df, oldtf_df, employees_df, scope):
+    
+    oldemp_df = employees_df
 
-    data1_df = pd.merge_asof(tf_df.sort_values(by=PrimaryKey.date),
-                                oth_fin_df.sort_values(by=PrimaryKey.date),
+    oldEm_df = oldEm_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    oldEm_df = oldEm_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+    
+    mergeOld_df = pd.merge_asof(oldEm_df.sort_values(by=PrimaryKey.date),
+                                oldtf_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
+                                tolerance=pd.Timedelta(14,'d'))
     
-    data2_df = pd.merge_asof(mktcap_df.sort_values(by=PrimaryKey.date),
-                                employees_df.sort_values(by=PrimaryKey.date),
+    mergeOld_df = mergeOld_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    mergeOld_df = mergeOld_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+
+    allOld_df = pd.merge_asof(mergeOld_df.sort_values(by=PrimaryKey.date),
+                                oldemp_df.sort_values(by=PrimaryKey.date),
                                 on=[PrimaryKey.date],
                                 by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
-    
-    data_all_df = pd.merge_asof(data1_df.sort_values(by=PrimaryKey.date),
-                                data2_df.sort_values(by=PrimaryKey.date),
-                                on=[PrimaryKey.date],
-                                by=[PrimaryKey.assetid],
-                                tolerance=pd.Timedelta('2y'))
+                                tolerance=pd.Timedelta(365,'d'))
 
     
-    data_all_df = data_all_df.sort_values(by=[PrimaryKey.date], ascending=False)
-    data_all_df = data_all_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
-
-    X_df = info_df.merge(data_all_df, on=PrimaryKey.assetid)
-    X_df = X_df.dropna(subset=config.variables, thresh=2)
-    X_df = X_df[[PrimaryKey.assetid, PrimaryKey.date,'industry','region','iso2', 'va_usd', 'revenue', 'employees', 'mktcap_avg_12m', 'ff_assets', 'ff_eq_tot', 'ff_mkt_val']]
+    allOld_df = allOld_df.sort_values(by=[PrimaryKey.date], ascending=False)
+    allOld_df = allOld_df.drop_duplicates(subset=[PrimaryKey.assetid], keep='first')
+    
+    old_df = allOld_df.set_index([PrimaryKey.assetid])
+    
+    if scope == 'one':
+        old_df = old_df.dropna(subset = ["em_1"]).rename(columns={"em_1": "em_true"})
+    elif scope == 'two':
+        old_df = old_df.dropna(subset = ["em_2"]).rename(columns={"em_2": "em_true"})
+    elif scope == 'three':
+        old_df = old_df.dropna(subset = ["em_3"]).rename(columns={"em_3": "em_true"})
+         
+    old_df = old_df[['em_true','va_usd','employees']]
+    old_df = old_df.rename(columns={"em_true": "old_em_true", "va_usd": "old_va_usd", "employees": "old_employees"})
+    
+    return old_df
     
     
-    return X_df
+    
+    
+    
+    
+    
+    
+    
+    
+    

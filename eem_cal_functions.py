@@ -7,85 +7,160 @@ Created on Thu Mar 17 13:11:31 2022
 """
 
 from dotenv import load_dotenv
-load_dotenv("/Users/kieranbrophy/.env_dev")
+load_dotenv("/Users/kieranbrophy/.env_prod")
 
 import pandas as pd
+import numpy as np
+
 from sklearn import metrics
+from sklearn.metrics import median_absolute_error
 
 import xgboost as xgb
 import optuna
+from optuna.samplers import TPESampler
 
-from sray_db.apps.pk import PrimaryKey
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
+from joblib import dump
+from joblib import load
+
+from skl2onnx import convert_sklearn, update_registered_converter
+from onnxmltools.convert.xgboost.operator_converters.XGBoost import (
+                convert_xgboost)
+from skl2onnx.common.shape_calculator import calculate_linear_regressor_output_shapes
+
+from skl2onnx.common.data_types import FloatTensorType
+
+from sklearn.metrics import r2_score
+
+import shap
 import _config_ as config
 
-def xgBoostyBoost (X_train, y_train, X_test, y_test, X_real):
-    
-    y_train = y_train.loc[y_train['industry'] == X_train['industry'].iloc[0]]
-    X_test = X_test.loc[X_test['industry'] == X_train['industry'].iloc[0]]
-    y_test = y_test.loc[y_test['industry'] == X_train['industry'].iloc[0]]
-    
-    X_real = X_real.loc[X_real['industry'] == X_train['industry'].iloc[0]]
-    
-    if len(X_train) > config.min_datapoints and len(X_test) > 0:
+from optuna.visualization.matplotlib import plot_optimization_history
+import matplotlib.pyplot as plt
+
+'''
+XG Boost calculation function
+'''
+def xgBoostyBoost (X_train, y_train, X_test, y_test, X_val, y_val, X_real, scope, run, sec_code, reg_code, check_sum):
         
-        study = optuna.create_study(direction="minimize")
+    y_train = y_train['em_true']
+    y_test = y_test['em_true']
+    y_val = y_val['em_true']
+    
+    X_train = X_train.drop(columns=['industry','eco_sector','factset_sector','region','iso2','economic_sector','bespoke_economic_sector','bespoke_industry','fact_code','eco_code','ind_code','reg_code','iso_code'])
+    X_test = X_test.drop(columns=['industry','eco_sector','factset_sector','region','iso2','economic_sector','bespoke_economic_sector','bespoke_industry','fact_code','eco_code','ind_code','reg_code','iso_code'])
+    X_val = X_val.drop(columns=['industry','eco_sector','factset_sector','region','iso2','economic_sector','bespoke_economic_sector','bespoke_industry','fact_code','eco_code','ind_code','reg_code','iso_code'])
+    X_real = X_real.drop(columns=['industry','eco_sector','factset_sector','region','iso2','economic_sector','bespoke_economic_sector','bespoke_industry','fact_code','eco_code','ind_code','reg_code','iso_code'])
+
+    if len(y_val) >= config.data_thresh and len(y_test) > 0:
     
         def objective(trial):
             """
             Objective function to tune an `XGBRegressor` model.
             """
-
             params = {
-                'n_estimators': trial.suggest_int("n_estimators", 1, 10000),
-                'reg_alpha': trial.suggest_loguniform("reg_alpha", 1e-8, 100.0),
-                'reg_lambda': trial.suggest_loguniform("reg_lambda", 1e-8, 100.0),
-                "subsample": trial.suggest_float("subsample", 0.5, 1.0, step=0.1),
-                "learning_rate": trial.suggest_float("learning_rate", 0.01, 1.0, log=True),
-                'max_depth': trial.suggest_int("max_depth", 2, 9),
-                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.1, 1.0),
+                'max_depth' : trial.suggest_int('max_depth', 3, 10),
+                'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
+                'n_estimators' : trial.suggest_int('n_estimators', 100, 500),
+                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),           
+                'subsample' : trial.suggest_float('subsample', 0.6, 1.0),
+                'gamma': trial.suggest_float('gamma', 1.0, 5.0),
                 }
-
-
+            
             model = xgb.XGBRegressor(
-                booster="dart",
+                booster="gbtree",
                 objective="reg:squarederror",
-                random_state=42,
-                **params
+                random_state=0,
+                **params,
                 )
-
-            return train_model_for_study(X_train, y_train, X_test, y_test, model)
-
-        study.optimize(objective, n_trials=config.n_trials, timeout=600)
-    
-        bestboostyboost = study.best_params
-
-        '''
-        xg_reg = xgb.XGBRegressor(objective ='reg:squarederror', colsample_bytree = 0.3, learning_rate = 0.1,
-                                  max_depth = 5, alpha = 10, n_estimators = 10)
-        '''
-    
-        xg_reg = xgb.XGBRegressor(objective ='reg:squarederror', **bestboostyboost)
         
-        xg_reg.fit(X_train[config.variables], y_train.em_true)
-        
-        if config.test == True:
-            result = X_test.groupby([PrimaryKey.assetid]).apply(lambda x: xg_reg.predict(x[config.variables]))
+            model.fit(X_train, y_train)
+
+            yhat = model.predict(X_test)
+            
+            return metrics.mean_squared_error(y_test, yhat, squared=False)
+    
+        '''
+        Run XG Boost for best hyperparameters?
+        '''
+        if config.hyper_tune == True:
+
+            study = optuna.create_study(direction="minimize", sampler=TPESampler(seed = 42))
+            study.optimize(objective, n_trials=config.n_trials, timeout=600)
+            
+            if config.show_opt_trial == True:
+                
+                plot_optimization_history(study)
+                    
+                plt.savefig('trials/run_' + str(run) + '/scope_' + str(scope) +'/pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.pdf', bbox_inches='tight')
+            
+            bestboostyboost = study.best_params
+            
+            xg_reg = xgb.XGBRegressor(objective ='reg:squarederror', booster="gbtree",
+                                      random_state=0, **bestboostyboost)
+
+            update_registered_converter(
+                xgb.XGBRegressor, 'XGBoostXGBRegressor',
+                calculate_linear_regressor_output_shapes, convert_xgboost)
+
+            pipe = Pipeline([('scaler', StandardScaler()), ('xgb', xg_reg)])
+            
+            pipe.fit(X_train, y_train)
+            
+            model_onnx = convert_sklearn(pipe, 'pipeline_xgboost',[('input', FloatTensorType([None, len(X_train.columns)]))],
+                target_opset={'': 12, 'ai.onnx.ml': 2})
+                     
+            with open('xgb_saved_model/run_' + str(run) + '/scope_' + str(scope) +'/xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.onnx', "wb") as f:
+                f.write(model_onnx.SerializeToString())
+            
+            # save model to file
+            dump(xg_reg, 'xgb_saved_model/run_' + str(run) + '/scope_' + str(scope) +'/pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.dat')
+            print('Saved model to: pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.dat')
+
         else:
-            result = X_real.groupby([PrimaryKey.assetid]).apply(lambda x: xg_reg.predict(x[config.variables]))
-        
-        result = abs(pd.DataFrame(result))  
-        result['datapoints'] = len(X_train)
-        
-        return result
-    
-def train_model_for_study(X_train, y_train, X_test, y_test, model):
-    
-    model.fit(
-        X_train[config.variables], 
-        y_train.em_true,
-    )
+            print('' + str(sec_code) + '_.dat')
+            xg_reg = load('xgb_saved_model/run_20220701/scope_' + str(scope) +'/pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.dat')
+            print('Loaded model from: pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.dat')
 
-    yhat = model.predict(X_test[config.variables])
+        xg_reg.fit(X_train, y_train)
+
+        '''
+        Validate estiamtes to get percentage error per sector
+        '''
+        val_pred = xg_reg.predict(X_val)
+        val_result = pd.DataFrame(y_val)
+        val_result['XGB_em_est'] = abs(val_pred)
+                    
+        MDAE = median_absolute_error(val_result['em_true'], val_result['XGB_em_est'])
+        MDAPE = np.median((np.abs(np.subtract(val_result['em_true'], val_result['XGB_em_est'])/val_result['em_true']))) * 100
+        r_sq = r2_score(val_result['em_true'], val_result['XGB_em_est'])
     
-    return metrics.mean_squared_error(y_test.em_true, yhat, squared=False)
+        '''
+        Estimate emissions - including likely percentage error
+        '''
+        real_pred = xg_reg.predict(X_real)
+        real_result = pd.DataFrame(X_real)
+        real_result['XGB_em_est'] = abs(real_pred)
+        
+        real_result.loc[real_result['XGB_em_est'] < 0] = 0
+                    
+        real_result['XGB_error_est'] = MDAE
+        real_result['XGB_per_error_est'] = MDAPE
+        real_result['XGB_R_squared'] = r_sq
+        real_result['XGB_datapoints_val'] = len(y_val)
+        real_result['XGB_model_file'] = 'xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.onnx'
+        
+        real_result['em_test'] = y_test
+        real_result['em_val'] = y_val
+        
+        if config.show_shap == True:
+            explainer = shap.TreeExplainer(xg_reg)
+            shap_values = explainer.shap_values(X_val, check_additivity=False)
+            shap.summary_plot(shap_values, X_val, show=False)
+            plt.savefig('shap/run_' + str(run) + '/scope_' + str(scope) +'/pima.xg_reg_' + str(sec_code) + '_' + str(reg_code) + '_' + str(check_sum) + '.pdf', bbox_inches='tight')
+
+        result = real_result
+                
+        return result
